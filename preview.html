@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>离线国标麻将算番器</title>
+  <style>
+    :root{
+      --bg:#f7f7f7;
+      --card:#ffffff;
+      --line:#e9edf2;
+      --ink:#16181d;
+      --muted:#6b7280;
+      --blue:#1687f5;
+      --blue2:#e8f3ff;
+      --orange:#ff8a65;
+      --red:#ef4444;
+      --green:#16a34a;
+      --dark:#172033;
+      --shadow:0 10px 28px rgba(17,24,39,.08);
+      --tileBorder:#1687f5;
+      --tileW:54px;
+      --tileH:66px;
+      --safeBottom:env(safe-area-inset-bottom, 0px);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",Arial,sans-serif;
+      padding-bottom:calc(76px + var(--safeBottom));
+    }
+    .app{max-width:860px;margin:0 auto;background:var(--bg);min-height:100vh;}
+    .topbar{
+      position:sticky;top:0;z-index:20;
+      height:72px;padding:20px 16px 12px;
+      background:rgba(247,247,247,.92);backdrop-filter:blur(16px);
+      display:flex;align-items:end;justify-content:center;border-bottom:1px solid rgba(233,237,242,.7)
+    }
+    .topbar h1{margin:0;font-size:24px;font-weight:900;letter-spacing:.02em}.topbar .subMini{position:absolute;right:14px;bottom:13px;color:var(--muted);font-size:12px}
+    .page{display:none}.page.active{display:block}.section{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px;margin-bottom:10px}.section.plain{background:transparent;border:0;padding:12px 16px 2px;margin:0}.sectionTitle{font-size:18px;font-weight:900;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between}.hint{font-size:13px;color:var(--muted);line-height:1.6}.tiny{font-size:12px;color:var(--muted)}
+
+    .tilePicker{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;align-items:center;justify-items:center}.tile{
+      width:100%;max-width:var(--tileW);height:var(--tileH);border:2px solid var(--tileBorder);border-radius:7px;background:linear-gradient(180deg,#fff,#fdfdfd 70%,#f2f7ff);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.05);user-select:none;cursor:pointer;transition:.13s transform,.13s opacity,.13s box-shadow}.tile:active{transform:scale(.96)}.tile.disabled{opacity:.32;filter:grayscale(.7);cursor:not-allowed}.tile .glyph{font-family:"Segoe UI Symbol","Apple Color Emoji","Noto Color Emoji","Noto Sans Symbols 2",sans-serif;font-size:40px;line-height:1}.tile.small{width:44px;height:56px;max-width:44px;flex:0 0 auto}.tile.small .glyph{font-size:34px}.tile.xs{width:36px;height:46px;max-width:36px;border-width:1.6px;border-radius:6px}.tile.xs .glyph{font-size:28px}.tile.activeWin{outline:3px solid rgba(22,135,245,.22);box-shadow:0 0 0 2px var(--blue),0 5px 13px rgba(22,135,245,.18)}.tileCount{position:absolute;right:2px;top:2px;background:var(--dark);color:#fff;border-radius:999px;font-size:10px;font-weight:900;min-width:16px;height:16px;line-height:16px;text-align:center}.groupTitle{font-size:13px;color:var(--muted);font-weight:800;margin:14px 0 8px}.groupTitle:first-child{margin-top:0}
+
+    .modeBar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.modeBtn,.softBtn{height:44px;border:1px solid var(--line);background:#fff;border-radius:7px;color:#2b3038;font-size:17px;font-weight:800;cursor:pointer}.modeBtn.active{background:var(--blue);border-color:var(--blue);color:#fff}.modeBtn.reset{background:var(--orange);border-color:var(--orange);color:#fff}.softBtn{height:38px;font-size:14px;border-radius:999px;padding:0 14px}.softBtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.softBtn.danger{color:#dc2626}.softBtn:active,.modeBtn:active{transform:scale(.98)}
+
+    .checkGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px}.checkItem{display:flex;align-items:center;gap:8px;justify-content:center;font-size:18px;color:#333;white-space:nowrap}.checkItem input{appearance:none;width:24px;height:24px;border:1px solid #dce1e7;border-radius:4px;background:#fff;position:relative}.checkItem input.round{border-radius:50%}.checkItem input:checked{background:var(--blue);border-color:var(--blue)}.checkItem input:checked:after{content:"";position:absolute;left:7px;top:3px;width:7px;height:13px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}.windRows{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.windBtn{display:flex;align-items:center;justify-content:center;gap:6px;font-size:17px;color:#333}.windBtn input{appearance:none;width:25px;height:25px;border:1px solid #dce1e7;border-radius:50%;background:#fff}.windBtn input:checked{background:var(--blue);border-color:var(--blue);box-shadow:inset 0 0 0 6px #fff}.flowerLine{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin-top:14px;font-size:18px;font-weight:900}.flowerLine input[type=range]{width:100%;accent-color:var(--blue)}.flowerBadge{min-width:42px;background:var(--blue);color:#fff;border-radius:999px;text-align:center;font-size:16px;padding:3px 10px}.toolsRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+    .handArea{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:64px}.empty{color:#a0a7b1;font-size:14px;padding:12px 0}.meld{display:flex;align-items:center;gap:4px;padding:5px 7px 7px;border:1px solid var(--line);border-radius:11px;background:#fbfcfe;position:relative}.meldTag{font-size:12px;font-weight:900;color:var(--blue);background:var(--blue2);border-radius:999px;padding:2px 6px;margin-right:2px}.del{position:absolute;right:-7px;top:-8px;border:0;background:#111827;color:#fff;border-radius:999px;width:20px;height:20px;font-size:13px;line-height:20px;padding:0}.candidateRow{display:flex;gap:8px;overflow:auto;padding-bottom:4px}.candidate{display:flex;flex-direction:column;align-items:center;gap:3px}.candidate .score{font-weight:900;font-size:13px;color:#111}.resultBox{text-align:center;padding:22px 12px}.resultTitle{font-size:28px;font-weight:950;letter-spacing:.04em}.resultSub{font-size:15px;color:var(--muted);margin-top:6px}.fanResult{display:inline-grid;grid-template-columns:auto auto;gap:8px 18px;margin-top:14px;text-align:left;font-size:21px;line-height:1.25}.fanResult .point{font-weight:900}.fanResult .name{white-space:nowrap}.warn{display:inline-block;margin-top:12px;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:800;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.ok{background:#ecfdf5;color:#047857;border-color:#a7f3d0}.waitGrid{display:flex;gap:12px;align-items:flex-start;justify-content:center;flex-wrap:wrap;margin-top:14px}.waitCard{display:flex;flex-direction:column;align-items:center;gap:6px}.waitCard .fanMini{font-size:13px;color:var(--muted)}
+
+    .bottomTabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.95);border-top:1px solid var(--line);backdrop-filter:blur(18px);padding:7px 0 calc(7px + var(--safeBottom));display:flex;justify-content:center}.bottomTabsInner{max-width:860px;width:100%;display:grid;grid-template-columns:1fr 1fr}.tabBtn{border:0;background:transparent;color:#666;font-size:15px;font-weight:800;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.tabBtn .ico{font-size:27px;line-height:1}.tabBtn.active{color:var(--blue)}
+
+    .fanSearch{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:15px;outline:none;background:#fff}.fanGroup{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:10px}.fanHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fbfcfe;border-bottom:1px solid var(--line)}.fanHead b{font-size:20px}.fanHead span{font-size:13px;color:var(--muted);font-weight:800}.fanNames{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.fanCell{padding:12px 14px;border-bottom:1px solid #f0f2f5;min-height:54px}.fanCell:nth-child(odd){border-right:1px solid #f0f2f5}.fanName{font-size:16px;font-weight:900}.fanEn{font-size:12px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pointChips{display:flex;gap:8px;overflow:auto;padding:0 16px 12px}.pointChip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;white-space:nowrap;color:#374151;font-weight:800}.pointChip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+    @media(max-width:520px){
+      :root{--tileH:50px;--tileW:42px}.topbar{height:66px}.topbar h1{font-size:21px}.section{padding:14px 12px}.tilePicker{gap:5px}.tile .glyph{font-size:32px}.modeBar{gap:8px}.modeBtn{height:40px;font-size:15px}.checkGrid{grid-template-columns:repeat(4,1fr);gap:10px 4px}.checkItem{font-size:17px}.windBtn{font-size:16px}.fanResult{font-size:20px}.fanNames{grid-template-columns:1fr}.fanCell:nth-child(odd){border-right:0}.tile.small{width:40px;height:52px}.tile.small .glyph{font-size:31px}.tile.xs{width:34px;height:44px}.tile.xs .glyph{font-size:26px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 id="pageTitle">国标算番器</h1>
+      <div class="subMini" id="topCount">0 张</div>
+    </header>
+
+    <main id="calcPage" class="page active">
+      <section class="section">
+        <div class="tilePicker" id="tilePicker"></div>
+      </section>
+
+      <section class="section">
+        <div class="modeBar">
+          <button class="modeBtn active" data-mode="single">立牌</button>
+          <button class="modeBtn" data-mode="chow">吃</button>
+          <button class="modeBtn" data-mode="pung">碰</button>
+          <button class="modeBtn" data-mode="exposedKong">明杠</button>
+          <button class="modeBtn" data-mode="concealedKong">暗杠</button>
+          <button class="modeBtn reset" id="resetBtn">重置</button>
+        </div>
+
+        <div class="checkGrid" style="margin-top:14px">
+          <label class="checkItem"><input type="checkbox" data-flag="selfDraw" class="round">自摸</label>
+          <label class="checkItem"><input type="checkbox" data-flag="lastTile" class="round">和绝张</label>
+          <label class="checkItem"><input type="checkbox" data-flag="robKong" class="round">抢杠和</label>
+          <label class="checkItem"><input type="checkbox" data-flag="lastClaim" class="round">海底捞月</label>
+        </div>
+        <div class="checkGrid" style="margin-top:12px">
+          <label class="checkItem"><input type="checkbox" data-flag="lastDraw" class="round">妙手回春</label>
+          <label class="checkItem"><input type="checkbox" data-flag="kongDraw" class="round">杠上开花</label>
+          <label class="checkItem"><input type="checkbox" data-flag="concealed" class="round">门前清</label>
+          <label class="checkItem"><input type="checkbox" data-flag="fullyConcealed" class="round">不求人</label>
+        </div>
+
+        <div class="windRows" aria-label="圈风">
+          <label class="windBtn"><input type="radio" name="roundWind" value="z1" checked>东风圈</label>
+          <label class="windBtn"><input type="radio" name="roundWind" value="z2">南风圈</label>
+          <label class="windBtn"><input type="radio" name="roundWind" value="z3">西风圈</label>
+          <label class="windBtn"><input type="radio" name="roundWind" value="z4">北风圈</label>
+        </div>
+        <div class="windRows" aria-label="门风">
+          <label class="windBtn"><input type="radio" name="seatWind" value="z1" checked>东风位</label>
+          <label class="windBtn"><input type="radio" name="seatWind" value="z2">南风位</label>
+          <label class="windBtn"><input type="radio" name="seatWind" value="z3">西风位</label>
+          <label class="windBtn"><input type="radio" name="seatWind" value="z4">北风位</label>
+        </div>
+
+        <div class="flowerLine">
+          <span>花牌:</span>
+          <input id="flowerRange" type="range" min="0" max="8" value="0" />
+          <span class="flowerBadge" id="flowerBadge">0</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="sectionTitle">牌面 <span class="tiny" id="handCountText">0 / 14</span></h2>
+        <div id="handArea" class="handArea"><div class="empty">点击上方牌面加入；切换“吃/碰/杠”可快速录入副露。</div></div>
+        <div class="toolsRow">
+          <button class="softBtn" id="undoBtn">撤销</button>
+          <button class="softBtn" id="sortBtn">整理立牌</button>
+          <button class="softBtn danger" id="clearHandBtn">清空牌面</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="sectionTitle">和张 <span class="tiny">从已输入牌中点选</span></h2>
+        <div id="winArea" class="candidateRow"><div class="empty">录入手牌后会显示可选和张。</div></div>
+      </section>
+
+      <section class="section">
+        <div id="resultBox" class="resultBox"></div>
+      </section>
+    </main>
+
+    <main id="fanPage" class="page">
+      <section class="section plain">
+        <input id="fanSearch" class="fanSearch" placeholder="搜索番形，例如：清一色 / 88 / Seven" />
+      </section>
+      <div class="pointChips" id="pointChips"></div>
+      <div id="fanTable"></div>
+      <section class="section">
+        <p class="hint"><b>说明：</b>这里按番数分类列出国标麻将 81 个常见番种。实际比赛计分还需要处理“不重复计、不得相同原则、场况、门前/副露、听牌形态”等细节，本页主要作为离线速查表。</p>
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottomTabs">
+    <div class="bottomTabsInner">
+      <button class="tabBtn active" data-tab="calc"><span class="ico">⌂</span><span>算番</span></button>
+      <button class="tabBtn" data-tab="fan"><span class="ico">▤</span><span>番表</span></button>
+    </div>
+  </nav>
+
+<script>
+(() => {
+  'use strict';
+
+  const tileDefs = [
+    ...Array.from({length:9}, (_,i)=>({id:`s${i+1}`, suit:'s', rank:i+1, label:`${i+1}索`, glyph:String.fromCodePoint(0x1F010+i)})),
+    ...Array.from({length:9}, (_,i)=>({id:`p${i+1}`, suit:'p', rank:i+1, label:`${i+1}筒`, glyph:String.fromCodePoint(0x1F019+i)})),
+    ...Array.from({length:9}, (_,i)=>({id:`m${i+1}`, suit:'m', rank:i+1, label:`${i+1}万`, glyph:String.fromCodePoint(0x1F007+i)})),
+    {id:'z1',suit:'z',rank:1,label:'东',glyph:'🀀'},
+    {id:'z2',suit:'z',rank:2,label:'南',glyph:'🀁'},
+    {id:'z3',suit:'z',rank:3,label:'西',glyph:'🀂'},
+    {id:'z4',suit:'z',rank:4,label:'北',glyph:'🀃'},
+    {id:'z5',suit:'z',rank:5,label:'中',glyph:'🀄'},
+    {id:'z6',suit:'z',rank:6,label:'发',glyph:'🀅'},
+    {id:'z7',suit:'z',rank:7,label:'白',glyph:'🀆'},
+    {id:'f1',suit:'f',rank:1,label:'花',glyph:'🀢'}
+  ];
+  const fullTileDefs = [
+    ...tileDefs.filter(t=>t.suit!=='f'),
+    {id:'f1',suit:'f',rank:1,label:'梅',glyph:'🀢'},
+    {id:'f2',suit:'f',rank:2,label:'兰',glyph:'🀣'},
+    {id:'f3',suit:'f',rank:3,label:'竹',glyph:'🀤'},
+    {id:'f4',suit:'f',rank:4,label:'菊',glyph:'🀥'},
+    {id:'f5',suit:'f',rank:5,label:'春',glyph:'🀦'},
+    {id:'f6',suit:'f',rank:6,label:'夏',glyph:'🀧'},
+    {id:'f7',suit:'f',rank:7,label:'秋',glyph:'🀨'},
+    {id:'f8',suit:'f',rank:8,label:'冬',glyph:'🀩'}
+  ];
+  const tileMap = Object.fromEntries(fullTileDefs.map(t=>[t.id,t]));
+  const normalIds = fullTileDefs.filter(t=>t.suit!=='f').map(t=>t.id);
+  const order = Object.fromEntries(normalIds.map((id,i)=>[id,i]));
+
+  const fanDefs = [
+    [88,'大四喜','Big Four Winds'],[88,'大三元','Big Three Dragons'],[88,'绿一色','All Green'],[88,'九莲宝灯','Nine Gates'],[88,'四杠','Four Kongs'],[88,'连七对','Seven Shifted Pairs'],[88,'十三幺','Thirteen Orphans'],
+    [64,'清幺九','All Terminals'],[64,'小四喜','Little Four Winds'],[64,'小三元','Little Three Dragons'],[64,'字一色','All Honors'],[64,'四暗刻','Four Concealed Pungs'],[64,'一色双龙会','Pure Terminal Chows'],
+    [48,'一色四同顺','Quadruple Chow'],[48,'一色四节高','Four Pure Shifted Pungs'],
+    [32,'一色四步高','Four Pure Shifted Chows'],[32,'三杠','Three Kongs'],[32,'混幺九','All Terminals and Honors'],
+    [24,'七对','Seven Pairs'],[24,'七星不靠','Greater Honors and Knitted Tiles'],[24,'全双刻','All Even Pungs'],[24,'清一色','Full Flush'],[24,'一色三同顺','Pure Triple Chow'],[24,'一色三节高','Pure Shifted Pungs'],[24,'全大','Upper Tiles'],[24,'全中','Middle Tiles'],[24,'全小','Lower Tiles'],
+    [16,'清龙','Pure Straight'],[16,'三色双龙会','Three-Suited Terminal Chows'],[16,'一色三步高','Pure Shifted Chows'],[16,'全带五','All Fives'],[16,'三同刻','Triple Pung'],[16,'三暗刻','Three Concealed Pungs'],
+    [12,'全不靠','Lesser Honors and Knitted Tiles'],[12,'组合龙','Knitted Straight'],[12,'大于五','Upper Four'],[12,'小于五','Lower Four'],[12,'三风刻','Big Three Winds'],
+    [8,'花龙','Mixed Straight'],[8,'推不倒','Reversible Tiles'],[8,'三色三同顺','Mixed Triple Chow'],[8,'三色三节高','Mixed Shifted Pungs'],[8,'无番和','Chicken Hand'],[8,'妙手回春','Last Tile Draw'],[8,'海底捞月','Last Tile Claim'],[8,'杠上开花','Out with Replacement Tile'],[8,'抢杠和','Robbing The Kong'],
+    [6,'碰碰和','All Pungs'],[6,'混一色','Half Flush'],[6,'三色三步高','Mixed Shifted Chows'],[6,'五门齐','All Types'],[6,'全求人','Melded Hand'],[6,'双箭刻','Two Dragons Pungs'],[6,'双暗杠','Two Concealed Kongs'],
+    [4,'全带幺','Outside Hand'],[4,'不求人','Fully Concealed Hand'],[4,'双明杠','Two Melded Kongs'],[4,'和绝张','Last Tile'],
+    [2,'箭刻','Dragon Pung'],[2,'圈风刻','Prevalent Wind'],[2,'门风刻','Seat Wind'],[2,'门前清','Concealed Hand'],[2,'平和','All Chows'],[2,'四归一','Tile Hog'],[2,'双同刻','Double Pung'],[2,'双暗刻','Two Concealed Pungs'],[2,'暗杠','Concealed Kong'],[2,'断幺','All Simples'],
+    [1,'一般高','Pure Double Chow'],[1,'喜相逢','Mixed Double Chow'],[1,'连六','Short Straight'],[1,'老少副','Two Terminal Chows'],[1,'幺九刻','Pung of Terminals or Honors'],[1,'明杠','Melded Kong'],[1,'缺一门','One Voided Suit'],[1,'无字','No Honors'],[1,'边张','Edge Wait'],[1,'坎张','Closed Wait'],[1,'单调将','Single Wait'],[1,'自摸','Self-Drawn'],[1,'花牌','Flower Tiles']
+  ].map(([points,name,en])=>({points,name,en}));
+  const fanByName = Object.fromEntries(fanDefs.map(f=>[f.name,f]));
+
+  const state = {
+    tab:'calc',
+    mode:'single',
+    pieces:[],
+    flowers:0,
+    winTile:null,
+    pointFilter:'all',
+    flags:{selfDraw:false,lastTile:false,robKong:false,lastClaim:false,lastDraw:false,kongDraw:false,concealed:false,fullyConcealed:false},
+    roundWind:'z1',
+    seatWind:'z1'
+  };
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const sorted = arr => [...arr].sort((a,b)=>order[a]-order[b]);
+  const unique = arr => [...new Set(arr)];
+  const getHand = () => state.pieces.flatMap(p=>p.ids);
+  const countMap = hand => {
+    const c = Object.fromEntries(normalIds.map(id=>[id,0]));
+    for(const id of hand) if(c[id]!==undefined) c[id]++;
+    return c;
+  };
+  const tileCount = id => getHand().filter(x=>x===id).length;
+  const isNumber = id => ['m','s','p'].includes(tileMap[id]?.suit);
+  const isHonor = id => tileMap[id]?.suit==='z';
+  const isWind = id => isHonor(id) && tileMap[id].rank <= 4;
+  const isDragon = id => isHonor(id) && tileMap[id].rank >= 5;
+  const isTerminal = id => isNumber(id) && (tileMap[id].rank===1 || tileMap[id].rank===9);
+  const isYao = id => isTerminal(id) || isHonor(id);
+  function tileHTML(id, cls='small', extra=''){
+    const t = tileMap[id];
+    return `<div class="tile ${cls}" data-tile="${id}" title="${t.label}" ${extra}><span class="glyph">${t.glyph}</span></div>`;
+  }
+  function fanPoint(name){ return name==='花牌' ? state.flowers : (fanByName[name]?.points || 0); }
+
+  function initPicker(){
+    $('#tilePicker').innerHTML = tileDefs.map(t=>tileHTML(t.id, '', '')).join('');
+    $('#tilePicker').addEventListener('click', e=>{
+      const el = e.target.closest('.tile');
+      if(!el || el.classList.contains('disabled')) return;
+      addByMode(el.dataset.tile);
+    });
+  }
+
+  function idsForMode(tileId){
+    const t = tileMap[tileId];
+    if(t.suit==='f') return {kind:'flower', ids:[]};
+    if(state.mode==='single') return {kind:'single', ids:[tileId]};
+    if(state.mode==='pung') return {kind:'pung', ids:[tileId,tileId,tileId]};
+    if(state.mode==='exposedKong') return {kind:'exposedKong', ids:[tileId,tileId,tileId,tileId]};
+    if(state.mode==='concealedKong') return {kind:'concealedKong', ids:[tileId,tileId,tileId,tileId]};
+    if(state.mode==='chow'){
+      if(!isNumber(tileId) || t.rank>7) return null;
+      return {kind:'chow', ids:[tileId, `${t.suit}${t.rank+1}`, `${t.suit}${t.rank+2}`]};
+    }
+    return {kind:'single', ids:[tileId]};
+  }
+
+  function canAdd(ids){
+    const c = countMap(getHand());
+    for(const id of ids){ c[id] = (c[id]||0)+1; if(c[id]>4) return `“${tileMap[id].label}”超过 4 张`; }
+    if(getHand().length + ids.length > 18) return '牌张过多，请先删除一些牌';
+    return '';
+  }
+
+  function addByMode(tileId){
+    const t = tileMap[tileId];
+    if(t.suit==='f'){
+      state.flowers = Math.min(8, state.flowers+1);
+      $('#flowerRange').value = state.flowers;
+      render();
+      return;
+    }
+    const pack = idsForMode(tileId);
+    if(!pack){ flashResult('吃牌请点击同花色的 1～7 作为起始牌'); return; }
+    const err = canAdd(pack.ids);
+    if(err){ flashResult(err); return; }
+    state.pieces.push({kind:pack.kind, ids:pack.ids});
+    if(state.winTile && !getHand().includes(state.winTile)) state.winTile = null;
+    render();
+  }
+
+  function kindName(k){ return ({single:'立',chow:'吃',pung:'碰',exposedKong:'明杠',concealedKong:'暗杠'})[k] || k; }
+  function removePiece(i){ state.pieces.splice(i,1); if(state.winTile && !getHand().includes(state.winTile)) state.winTile=null; render(); }
+  function setMode(mode){ state.mode=mode; $$('.modeBtn[data-mode]').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode)); }
+
+  function renderPickerState(){
+    $$('#tilePicker .tile').forEach(el=>{
+      const id = el.dataset.tile;
+      const t = tileMap[id];
+      el.querySelector('.tileCount')?.remove();
+      if(t.suit==='f'){
+        if(state.flowers>0) el.insertAdjacentHTML('beforeend', `<span class="tileCount">${state.flowers}</span>`);
+        el.classList.toggle('disabled', state.flowers>=8);
+        return;
+      }
+      const n = tileCount(id);
+      if(n>0) el.insertAdjacentHTML('beforeend', `<span class="tileCount">${n}</span>`);
+      const pack = idsForMode(id);
+      el.classList.toggle('disabled', !pack || !!canAdd(pack.ids));
+    });
+  }
+
+  function renderHand(){
+    const hand = getHand();
+    $('#handCountText').textContent = `${hand.length} / 14`;
+    $('#topCount').textContent = `${hand.length} 张`;
+    const singlePieces = state.pieces.map((p,i)=>({p,i})).filter(x=>x.p.kind==='single').sort((a,b)=>order[a.p.ids[0]]-order[b.p.ids[0]]);
+    const meldPieces = state.pieces.map((p,i)=>({p,i})).filter(x=>x.p.kind!=='single');
+    let html = '';
+    if(state.pieces.length===0){
+      html = '<div class="empty">点击上方牌面加入；切换“吃/碰/杠”可快速录入副露。</div>';
+    }else{
+      html += singlePieces.map(({p,i})=>`<div class="meld" data-piece="${i}">${tileHTML(p.ids[0], 'small')}<button class="del" title="删除">×</button></div>`).join('');
+      html += meldPieces.map(({p,i})=>`<div class="meld" data-piece="${i}"><span class="meldTag">${kindName(p.kind)}</span>${p.ids.map(id=>tileHTML(id,'small')).join('')}<button class="del" title="删除">×</button></div>`).join('');
+    }
+    $('#handArea').innerHTML = html;
+
+    const candidates = sorted(unique(hand));
+    $('#winArea').innerHTML = candidates.length ? candidates.map(id=>`<div class="candidate"><div class="tile small ${state.winTile===id?'activeWin':''}" data-win="${id}"><span class="glyph">${tileMap[id].glyph}</span></div></div>`).join('') : '<div class="empty">录入手牌后会显示可选和张。</div>';
+  }
+
+  function renderResult(){
+    const hand = getHand();
+    const box = $('#resultBox');
+    if(hand.length===13){
+      const waits = calcWaits(hand);
+      if(waits.length===0){
+        box.innerHTML = '<div class="resultTitle">未听牌</div><div class="resultSub">当前 13 张牌未找到标准听口</div>';
+        return;
+      }
+      box.innerHTML = `<div class="resultTitle">听 ${waits.length} 张牌</div><div class="waitGrid">${waits.map(w=>`<div class="waitCard"><div class="score">${w.total}番</div>${tileHTML(w.id,'small')}<div class="fanMini">${w.fans.slice(0,2).join('、') || '基础牌型'}</div></div>`).join('')}</div>`;
+      return;
+    }
+    if(hand.length!==14){
+      const more = hand.length<14 ? `还差 ${14-hand.length} 张` : `已超过 14 张，含杠牌请人工复核结构`;
+      box.innerHTML = `<div class="resultTitle">${hand.length} 张牌</div><div class="resultSub">${more}</div>`;
+      return;
+    }
+    const c = countMap(hand);
+    const legal = isWinningStructure(c);
+    const result = detectFans(hand, state.winTile);
+    const list = result.fans.filter(name=>fanPoint(name)>0).sort((a,b)=>fanPoint(b)-fanPoint(a));
+    const scoreRows = list.length ? list.map(name=>`<div class="point">${fanPoint(name)}番</div><div class="name">${name}</div>`).join('') : '<div class="point">0番</div><div class="name">未识别番种</div>';
+    box.innerHTML = `<div class="resultTitle">共${result.total}番</div><div class="resultSub">${legal ? '自动识别结果' : '牌型结构未完全成立，以下仅作条件统计'}</div><div class="fanResult">${scoreRows}</div><br><span class="warn ${result.total>=8?'ok':''}">${result.total>=8?'达到 8 番起和':'未达到 8 番起和'}</span>`;
+  }
+
+  function flashResult(msg){
+    $('#resultBox').innerHTML = `<div class="resultTitle" style="font-size:22px">${msg}</div>`;
+    setTimeout(renderResult, 1200);
+  }
+
+  function render(){
+    renderPickerState();
+    renderHand();
+    renderResult();
+    $('#flowerBadge').textContent = state.flowers;
+    $('#flowerRange').value = state.flowers;
+  }
+
+  function bindCalc(){
+    $$('.modeBtn[data-mode]').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+    $('#resetBtn').addEventListener('click',()=>{ state.pieces=[]; state.flowers=0; state.winTile=null; render(); });
+    $('#undoBtn').addEventListener('click',()=>{ if(state.pieces.length) state.pieces.pop(); else state.flowers=Math.max(0,state.flowers-1); render(); });
+    $('#sortBtn').addEventListener('click',()=>{ state.pieces = [...state.pieces.filter(p=>p.kind!=='single').sort((a,b)=>order[a.ids[0]]-order[b.ids[0]]), ...state.pieces.filter(p=>p.kind==='single').sort((a,b)=>order[a.ids[0]]-order[b.ids[0]])]; render(); });
+    $('#clearHandBtn').addEventListener('click',()=>{ state.pieces=[]; state.winTile=null; render(); });
+    $('#handArea').addEventListener('click', e=>{ const m=e.target.closest('.meld'); if(m) removePiece(Number(m.dataset.piece)); });
+    $('#winArea').addEventListener('click', e=>{ const w=e.target.closest('[data-win]'); if(w){ state.winTile = state.winTile===w.dataset.win ? null : w.dataset.win; render(); } });
+    $('#flowerRange').addEventListener('input', e=>{ state.flowers=Number(e.target.value); render(); });
+    $$('input[data-flag]').forEach(inp=>inp.addEventListener('change',()=>{ state.flags[inp.dataset.flag]=inp.checked; renderResult(); }));
+    $$('input[name="roundWind"]').forEach(inp=>inp.addEventListener('change',()=>{ if(inp.checked) state.roundWind=inp.value; renderResult(); }));
+    $$('input[name="seatWind"]').forEach(inp=>inp.addEventListener('change',()=>{ if(inp.checked) state.seatWind=inp.value; renderResult(); }));
+  }
+
+  function calcWaits(hand){
+    const c = countMap(hand);
+    const waits = [];
+    for(const id of normalIds){
+      if(c[id]>=4) continue;
+      const trial = [...hand, id];
+      const cc = countMap(trial);
+      if(!isWinningStructure(cc)) continue;
+      const r = detectFans(trial, id);
+      waits.push({id,total:r.total,fans:r.fans});
+    }
+    return waits.sort((a,b)=>b.total-a.total || order[a.id]-order[b.id]);
+  }
+
+  function detectFans(hand, winTile){
+    const c = countMap(hand);
+    const found = new Set();
+    const used = Object.entries(c).filter(([,n])=>n>0).map(([id])=>id);
+    const suits = unique(used.filter(isNumber).map(id=>tileMap[id].suit));
+    const hasHonors = used.some(isHonor);
+    const decomps = hand.length===14 ? decomposeAll(c) : [];
+
+    if(state.flags.selfDraw) found.add('自摸');
+    if(state.flags.lastTile) found.add('和绝张');
+    if(state.flags.robKong) found.add('抢杠和');
+    if(state.flags.lastClaim) found.add('海底捞月');
+    if(state.flags.lastDraw) found.add('妙手回春');
+    if(state.flags.kongDraw) found.add('杠上开花');
+    if(state.flags.concealed) found.add('门前清');
+    if(state.flags.fullyConcealed) found.add('不求人');
+    if(state.flowers>0) found.add('花牌');
+
+    const exposedKongs = state.pieces.filter(p=>p.kind==='exposedKong').length;
+    const concealedKongs = state.pieces.filter(p=>p.kind==='concealedKong').length;
+    const kongN = exposedKongs + concealedKongs;
+    if(exposedKongs>=1) found.add('明杠');
+    if(concealedKongs>=1) found.add('暗杠');
+    if(concealedKongs>=2) found.add('双暗杠');
+    if(exposedKongs>=2) found.add('双明杠');
+    if(kongN>=3) found.add('三杠');
+    if(kongN>=4) found.add('四杠');
+    if(state.pieces.length>0 && state.pieces.every(p=>p.kind!=='single')) found.add('全求人');
+
+    if(hand.length!==14){
+      return scoreSet(found);
+    }
+
+    if(isSevenPairs(c)) found.add('七对');
+    if(isSevenShiftedPairs(c)) found.add('连七对');
+    if(isThirteenOrphans(c)) found.add('十三幺');
+
+    if(used.every(id=>['s2','s3','s4','s6','s8','z6'].includes(id))) found.add('绿一色');
+    if(used.every(isHonor)) found.add('字一色');
+    if(used.every(id=>isTerminal(id))) found.add('清幺九');
+    if(used.every(id=>isYao(id)) && !used.every(id=>isTerminal(id)) && !used.every(isHonor)) found.add('混幺九');
+    if(used.every(id=>isNumber(id) && [7,8,9].includes(tileMap[id].rank))) found.add('全大');
+    if(used.every(id=>isNumber(id) && [4,5,6].includes(tileMap[id].rank))) found.add('全中');
+    if(used.every(id=>isNumber(id) && [1,2,3].includes(tileMap[id].rank))) found.add('全小');
+    if(used.every(id=>isNumber(id) && [6,7,8,9].includes(tileMap[id].rank))) found.add('大于五');
+    if(used.every(id=>isNumber(id) && [1,2,3,4].includes(tileMap[id].rank))) found.add('小于五');
+    if(used.every(id=>!isHonor(id))) found.add('无字');
+    if(used.every(id=>!isYao(id))) found.add('断幺');
+    if(suits.length===1 && !hasHonors) found.add('清一色');
+    if(suits.length===1 && hasHonors && used.some(isNumber)) found.add('混一色');
+    if(suits.length<3 && used.some(isNumber) && !used.every(isHonor)) found.add('缺一门');
+    if(['m','s','p'].every(s=>used.some(id=>tileMap[id].suit===s)) && used.some(isWind) && used.some(isDragon)) found.add('五门齐');
+    const reversible = new Set(['p1','p2','p3','p4','p5','p8','p9','s2','s4','s5','s6','s8','s9','z7']);
+    if(used.every(id=>reversible.has(id))) found.add('推不倒');
+
+    const tripIds = Object.entries(c).filter(([,n])=>n>=3).map(([id])=>id);
+    const dragonTrips = tripIds.filter(isDragon);
+    const windTrips = tripIds.filter(isWind);
+    if(dragonTrips.length>=1) found.add('箭刻');
+    if(dragonTrips.length>=2) found.add('双箭刻');
+    if(dragonTrips.length>=3) found.add('大三元');
+    if(dragonTrips.length===2 && ['z5','z6','z7'].some(id=>c[id]===2)) found.add('小三元');
+    if(windTrips.length>=3) found.add('三风刻');
+    if(windTrips.length>=4) found.add('大四喜');
+    if(windTrips.length===3 && ['z1','z2','z3','z4'].some(id=>c[id]===2)) found.add('小四喜');
+    if(c[state.roundWind]>=3) found.add('圈风刻');
+    if(c[state.seatWind]>=3) found.add('门风刻');
+    if(tripIds.some(id=>isYao(id))) found.add('幺九刻');
+    if(Object.values(c).some(n=>n===4)) found.add('四归一');
+
+    for(const d of decomps) addPatternsFromDecomp(d, found, winTile);
+    return scoreSet(found);
+  }
+
+  function scoreSet(set){
+    const fans = [...set].filter(name=>fanByName[name]);
+    const total = fans.reduce((sum,name)=>sum+fanPoint(name),0);
+    return {fans,total};
+  }
+
+  function isWinningStructure(c){ return decomposeAll(c).length>0 || isSevenPairs(c) || isThirteenOrphans(c); }
+  function isSevenPairs(c){ return Object.values(c).reduce((a,n)=>a+n,0)===14 && Object.values(c).filter(n=>n===2).length===7; }
+  function isThirteenOrphans(c){
+    const need = ['m1','m9','p1','p9','s1','s9','z1','z2','z3','z4','z5','z6','z7'];
+    const total = Object.values(c).reduce((a,n)=>a+n,0);
+    return total===14 && need.every(id=>c[id]>=1) && need.some(id=>c[id]===2) && Object.entries(c).every(([id,n])=>need.includes(id)?n<=2:n===0);
+  }
+  function isSevenShiftedPairs(c){
+    for(const suit of ['m','s','p']){
+      for(let start=1;start<=3;start++){
+        const ids = Array.from({length:7},(_,i)=>`${suit}${start+i}`);
+        if(Object.entries(c).every(([id,n])=>ids.includes(id)?n===2:n===0)) return true;
+      }
+    }
+    return false;
+  }
+  function decomposeAll(c){
+    if(Object.values(c).reduce((a,n)=>a+n,0)!==14) return [];
+    const results = [];
+    for(const id of normalIds){
+      if(c[id]>=2){
+        const cc = {...c}; cc[id]-=2;
+        searchMelds(cc, [], {pair:id}, results);
+      }
+      if(results.length>220) break;
+    }
+    return results;
+  }
+  function searchMelds(c, melds, base, results){
+    const first = normalIds.find(id=>c[id]>0);
+    if(!first){ results.push({pair:base.pair, melds:[...melds]}); return; }
+    if(melds.length>=4) return;
+    const t = tileMap[first];
+    if(c[first]>=3){
+      c[first]-=3; melds.push({type:'trip',tile:first,suit:t.suit,rank:t.rank});
+      searchMelds(c,melds,base,results);
+      melds.pop(); c[first]+=3;
+    }
+    if(isNumber(first) && t.rank<=7){
+      const a=first,b=`${t.suit}${t.rank+1}`,d=`${t.suit}${t.rank+2}`;
+      if(c[a]>0&&c[b]>0&&c[d]>0){
+        c[a]--; c[b]--; c[d]--; melds.push({type:'seq',suit:t.suit,start:t.rank,tiles:[a,b,d]});
+        searchMelds(c,melds,base,results);
+        melds.pop(); c[a]++; c[b]++; c[d]++;
+      }
+    }
+  }
+
+  function addPatternsFromDecomp(d, found, winTile){
+    const seqs = d.melds.filter(m=>m.type==='seq');
+    const trips = d.melds.filter(m=>m.type==='trip');
+    if(trips.length===4) found.add('碰碰和');
+    if(seqs.length===4) found.add('平和');
+    if(trips.length===4 && [...trips.map(m=>m.tile), d.pair].every(id=>isNumber(id)&&[2,4,6,8].includes(tileMap[id].rank))) found.add('全双刻');
+    if(d.melds.every(m => m.type==='seq' ? m.tiles.some(id=>tileMap[id].rank===5) : tileMap[m.tile].rank===5) && isNumber(d.pair) && tileMap[d.pair].rank===5) found.add('全带五');
+    if(d.melds.every(m => (m.type==='seq'?m.tiles:[m.tile]).some(isYao)) && isYao(d.pair)) found.add('全带幺');
+    if(winTile){
+      if(d.pair===winTile) found.add('单调将');
+      for(const s of seqs){
+        if(!s.tiles.includes(winTile)) continue;
+        const r = tileMap[winTile].rank;
+        if((s.start===1 && r===3) || (s.start===7 && r===7)) found.add('边张');
+        if(r===s.start+1) found.add('坎张');
+      }
+    }
+    const key = s => `${s.suit}${s.start}`;
+    const seqCount = new Map(); seqs.forEach(s=>seqCount.set(key(s),(seqCount.get(key(s))||0)+1));
+    for(const n of seqCount.values()){ if(n>=2) found.add('一般高'); if(n>=3) found.add('一色三同顺'); if(n>=4) found.add('一色四同顺'); }
+    for(let start=1; start<=7; start++){
+      const ss = new Set(seqs.filter(s=>s.start===start).map(s=>s.suit));
+      if(ss.size>=2) found.add('喜相逢');
+      if(ss.size===3) found.add('三色三同顺');
+    }
+    for(const suit of ['m','s','p']){
+      const starts = new Set(seqs.filter(s=>s.suit===suit).map(s=>s.start));
+      if(starts.has(1)&&starts.has(4)&&starts.has(7)) found.add('清龙');
+      for(let a=1;a<=4;a++) if(starts.has(a)&&starts.has(a+3)) found.add('连六');
+      if(starts.has(1)&&starts.has(7)) found.add('老少副');
+      for(let a=1;a<=5;a++) if(starts.has(a)&&starts.has(a+1)&&starts.has(a+2)) found.add('一色三步高');
+      for(let a=1;a<=3;a++) if(starts.has(a)&&starts.has(a+2)&&starts.has(a+4)) found.add('一色三步高');
+      for(let a=1;a<=4;a++) if(starts.has(a)&&starts.has(a+1)&&starts.has(a+2)&&starts.has(a+3)) found.add('一色四步高');
+      if(starts.has(1)&&starts.has(3)&&starts.has(5)&&starts.has(7)) found.add('一色四步高');
+    }
+    for(const a of ['m','s','p']) for(const b of ['m','s','p']) for(const c of ['m','s','p']){
+      if(new Set([a,b,c]).size===3 && seqs.some(s=>s.suit===a&&s.start===1) && seqs.some(s=>s.suit===b&&s.start===4) && seqs.some(s=>s.suit===c&&s.start===7)) found.add('花龙');
+    }
+    for(const suit of ['m','s','p']){
+      const has17 = seqs.some(s=>s.suit===suit&&s.start===1) && seqs.some(s=>s.suit===suit&&s.start===7);
+      if(has17 && isNumber(d.pair) && tileMap[d.pair].rank===5 && tileMap[d.pair].suit===suit) found.add('一色双龙会');
+    }
+    const termChowSuits = seqs.filter(s=>s.start===1 || s.start===7).map(s=>s.suit);
+    if(unique(termChowSuits).length>=2 && isNumber(d.pair) && tileMap[d.pair].rank===5) found.add('三色双龙会');
+    for(let r=1;r<=9;r++){
+      const suits = new Set(trips.filter(t=>isNumber(t.tile)&&t.rank===r).map(t=>t.suit));
+      if(suits.size>=2) found.add('双同刻');
+      if(suits.size===3) found.add('三同刻');
+    }
+    for(const suit of ['m','s','p']){
+      const rs = new Set(trips.filter(t=>t.suit===suit).map(t=>t.rank));
+      for(let a=1;a<=7;a++) if(rs.has(a)&&rs.has(a+1)&&rs.has(a+2)) found.add('一色三节高');
+      for(let a=1;a<=6;a++) if(rs.has(a)&&rs.has(a+1)&&rs.has(a+2)&&rs.has(a+3)) found.add('一色四节高');
+    }
+    for(let a=1;a<=7;a++){
+      const candidates=[a,a+1,a+2];
+      const ok=['m','s','p'].every(suit=>trips.some(t=>t.suit===suit && candidates.includes(t.rank)));
+      const ranks=unique(trips.filter(t=>['m','s','p'].includes(t.suit)&&candidates.includes(t.rank)).map(t=>t.rank));
+      if(ok && ranks.length>=3) found.add('三色三节高');
+    }
+    for(let a=1;a<=5;a++){
+      const candidates=[a,a+1,a+2];
+      const ok=['m','s','p'].every(suit=>seqs.some(s=>s.suit===suit && candidates.includes(s.start)));
+      const starts=unique(seqs.filter(s=>candidates.includes(s.start)).map(s=>s.start));
+      if(ok && starts.length>=3) found.add('三色三步高');
+    }
+  }
+
+  function initFanTable(){
+    const points = ['all', ...unique(fanDefs.map(f=>f.points)).sort((a,b)=>b-a)];
+    $('#pointChips').innerHTML = points.map(p=>`<button class="pointChip ${p==='all'?'active':''}" data-point="${p}">${p==='all'?'全部':p+'番'}</button>`).join('');
+    $('#pointChips').addEventListener('click', e=>{
+      const b=e.target.closest('.pointChip'); if(!b) return;
+      state.pointFilter=b.dataset.point;
+      $$('.pointChip').forEach(x=>x.classList.toggle('active', x===b));
+      renderFanTable();
+    });
+    $('#fanSearch').addEventListener('input', renderFanTable);
+    renderFanTable();
+  }
+  function renderFanTable(){
+    const q = ($('#fanSearch').value||'').trim().toLowerCase();
+    const grouped = new Map();
+    for(const f of fanDefs){
+      if(state.pointFilter!=='all' && String(f.points)!==String(state.pointFilter)) continue;
+      const text = `${f.points} ${f.name} ${f.en}`.toLowerCase();
+      if(q && !text.includes(q)) continue;
+      if(!grouped.has(f.points)) grouped.set(f.points, []);
+      grouped.get(f.points).push(f);
+    }
+    const points = [...grouped.keys()].sort((a,b)=>b-a);
+    $('#fanTable').innerHTML = points.length ? points.map(p=>`<section class="fanGroup" id="fan-${p}"><div class="fanHead"><b>${p} 番</b><span>${grouped.get(p).length} 个番形</span></div><div class="fanNames">${grouped.get(p).map(f=>`<div class="fanCell"><div class="fanName">${f.name}</div><div class="fanEn">${f.en}</div></div>`).join('')}</div></section>`).join('') : '<section class="section"><div class="empty">没有匹配的番形。</div></section>';
+  }
+
+  function bindTabs(){
+    $$('.tabBtn').forEach(btn=>btn.addEventListener('click',()=>{
+      state.tab = btn.dataset.tab;
+      $$('.tabBtn').forEach(b=>b.classList.toggle('active', b===btn));
+      $('#calcPage').classList.toggle('active', state.tab==='calc');
+      $('#fanPage').classList.toggle('active', state.tab==='fan');
+      $('#pageTitle').textContent = state.tab==='calc' ? '国标算番器' : '国标番表';
+      $('#topCount').textContent = state.tab==='calc' ? `${getHand().length} 张` : '81 番种';
+      window.scrollTo(0,0);
+    }));
+  }
+
+  initPicker();
+  bindCalc();
+  initFanTable();
+  bindTabs();
+  render();
+})();
+</script>
+</body>
+</html>
